@@ -61,7 +61,7 @@ export default function AboutMe() {
                             <img
                                 alt="Portrait of a software engineer working on a laptop in a modern dark office"
                                 className="w-full h-full object-cover transition-all duration-700 ease-in-out transform hover:scale-105"
-                                src="/portrait-2.jpg"
+                                src="/portrait.jpg"
                             />
                             {/* Floating Code Snippet Overlay */}
                             <div className="absolute bottom-4 left-4 right-4 z-20 bg-background-dark/90 backdrop-blur-sm p-3 rounded border border-border-dark shadow-lg">
