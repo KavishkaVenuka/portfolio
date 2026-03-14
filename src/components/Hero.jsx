@@ -1,6 +1,156 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
+import gsap from 'gsap'
 
 export default function Hero() {
+  const line1Ref = useRef(null)
+  const line2Ref = useRef(null)
+  const cursorRef = useRef(null)
+  const dotRef = useRef(null)
+  const whoamiRef = useRef(null)
+  const heroSectionRef = useRef(null)
+  const whoamiTimelineRef = useRef(null)
+
+  useEffect(() => {
+    const line1Text = 'Kavishka'
+    const line2Text = 'Venuka'
+
+    // Clear initial content
+    line1Ref.current.textContent = ''
+    line2Ref.current.textContent = ''
+    gsap.set(dotRef.current, { opacity: 0 })
+
+    // Blinking cursor animation
+    const cursorBlink = gsap.to(cursorRef.current, {
+      opacity: 0,
+      repeat: -1,
+      yoyo: true,
+      duration: 0.5,
+      ease: 'steps(1)',
+    })
+
+    const tl = gsap.timeline({
+      delay: 0.6,
+      onComplete: () => {
+        // Hide cursor after animation
+        gsap.to(cursorRef.current, { opacity: 0, duration: 0.3 })
+        cursorBlink.kill()
+      },
+    })
+
+    // Type each character of line 1
+    line1Text.split('').forEach((char, i) => {
+      tl.to(line1Ref.current, {
+        duration: 0.06,
+        ease: 'none',
+        onComplete: () => {
+          line1Ref.current.textContent += char
+        },
+      })
+      // Small random pause between characters for realism
+      if (i < line1Text.length - 1) {
+        tl.to({}, { duration: Math.random() * 0.04 + 0.02 })
+      }
+    })
+
+    // Pause between lines
+    tl.to({}, { duration: 0.4 })
+
+    // Move cursor to second line (handled by DOM position)
+    tl.set(cursorRef.current, { /* cursor will follow DOM flow */ })
+
+    // Type each character of line 2
+    line2Text.split('').forEach((char, i) => {
+      tl.to(line2Ref.current, {
+        duration: 0.06,
+        ease: 'none',
+        onComplete: () => {
+          line2Ref.current.textContent += char
+        },
+      })
+      if (i < line2Text.length - 1) {
+        tl.to({}, { duration: Math.random() * 0.04 + 0.02 })
+      }
+    })
+
+    // Reveal the dot
+    tl.to(dotRef.current, { opacity: 1, duration: 0.15, ease: 'power2.out' })
+
+    return () => {
+      tl.kill()
+      cursorBlink.kill()
+    }
+  }, [])
+
+  // Looping typewriter for the terminal whoami text
+  useEffect(() => {
+    const whoamiText = 'Beyond syntax: Architecting robust systems and intuitive designs.'
+    const el = whoamiRef.current
+    const heroEl = heroSectionRef.current
+    if (!el || !heroEl) return
+
+    const buildTimeline = () => {
+      const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.5 })
+
+      // Start empty
+      tl.set(el, { textContent: '' })
+
+      // Type each character
+      whoamiText.split('').forEach((char, i) => {
+        tl.to(el, {
+          duration: 0.04,
+          ease: 'none',
+          onComplete: () => {
+            el.textContent = whoamiText.substring(0, i + 1)
+          },
+        })
+      })
+
+      // Hold the complete text
+      tl.to({}, { duration: 3 })
+
+      // Erase each character in reverse
+      for (let i = whoamiText.length; i >= 0; i--) {
+        tl.to(el, {
+          duration: 0.02,
+          ease: 'none',
+          onComplete: () => {
+            el.textContent = whoamiText.substring(0, i)
+          },
+        })
+      }
+
+      // Pause before restarting
+      tl.to({}, { duration: 0.08 })
+
+      return tl
+    }
+
+    let whoamiTl = null
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!whoamiTl) {
+            whoamiTl = buildTimeline()
+            whoamiTimelineRef.current = whoamiTl
+          } else {
+            whoamiTl.play()
+          }
+        } else {
+          if (whoamiTl) whoamiTl.pause()
+        }
+      },
+      { threshold: 0.3 }
+    )
+
+    observer.observe(heroEl)
+
+    return () => {
+      observer.disconnect()
+      if (whoamiTl) whoamiTl.kill()
+    }
+  }, [])
+
   return (
     <>
       <header className="fixed top-0 left-0 w-full z-50 border-b border-primary/20 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-sm transition-colors duration-300">
@@ -26,7 +176,7 @@ export default function Hero() {
         </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center pt-20 px-6 relative">
+      <main ref={heroSectionRef} className="flex-grow flex items-center justify-center pt-20 px-6 relative">
         <div className="absolute top-20 left-10 w-96 h-96 bg-primary/5 rounded-full blur-[128px] pointer-events-none"></div>
         <div className="absolute bottom-10 right-10 w-64 h-64 bg-primary/10 rounded-full blur-[96px] pointer-events-none"></div>
         <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center py-12 lg:py-0 min-h-[calc(100vh-80px)]">
@@ -37,7 +187,16 @@ export default function Hero() {
             </div>
             <div className="space-y-4" data-gsap="hero-text">
               <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-slate-900 dark:text-white">
-                Kavishka Venuka<span className="text-primary">.</span>
+                <span ref={line1Ref}>Kavishka</span>
+                <br />
+                <span className="inline-flex items-baseline">
+                  <span ref={line2Ref}>Venuka</span>
+                  <span ref={dotRef} className="text-primary">.</span>
+                  <span
+                    ref={cursorRef}
+                    className="inline-block w-[3px] md:w-[4px] lg:w-[5px] h-[0.85em] bg-primary ml-[2px] translate-y-[0.05em]"
+                  />
+                </span>
               </h1>
               <p className="text-xl md:text-2xl font-light text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
                 I build things for the web — <span className="text-slate-800 dark:text-slate-200 font-medium">and beyond</span>.
@@ -45,7 +204,7 @@ export default function Hero() {
             </div>
             <div className="font-mono text-xs text-primary/60 flex items-center gap-2 py-2" data-gsap="hero-location">
               <span className="material-symbols-outlined text-base">location_on</span>
-              <span>37.7749° N, 122.4194° W</span>
+              <span>6°51′11″N, 79°54′14″E</span>
             </div>
             <div className="flex flex-wrap gap-4 pt-4" data-gsap="hero-ctas">
               <button className="h-12 px-8 rounded border border-primary text-primary font-bold text-sm uppercase tracking-wide hover:bg-primary hover:text-background-dark transition-all duration-300 flex items-center gap-2 group">
@@ -79,7 +238,7 @@ export default function Hero() {
                     <span className="text-blue-400">~</span>
                     <span className="text-slate-400">whoami</span>
                   </div>
-                  <div className="pl-4 text-emerald-100/90 mb-4">Full-stack developer with a passion for clean code and intuitive design.</div>
+                  <div ref={whoamiRef} className="pl-4 text-emerald-100/90 mb-4">Beyond syntax: Architecting robust systems and intuitive designs.</div>
                   <div className="flex gap-2">
                     <span className="text-primary">➜</span>
                     <span className="text-blue-400">~</span>
@@ -89,11 +248,11 @@ export default function Hero() {
                   <div className="pl-4 text-slate-400">
                     <span className="text-yellow-300">{`{`}</span>
                     <br />
-                    &nbsp;&nbsp;<span className="text-sky-300">"frontend"</span>: [<span className="text-orange-300">"React"</span>, <span className="text-orange-300">"Vue"</span>, <span className="text-orange-300">"Tailwind"</span>],
+                    &nbsp;&nbsp;<span className="text-sky-300">"ci/cd"</span>: [<span className="text-orange-300">"Git"</span>, <span className="text-orange-300">"Docker"</span>, <span className="text-orange-300">"Jenkins"</span>]
+                    <br />
+                    &nbsp;&nbsp;<span className="text-sky-300">"frontend"</span>: [<span className="text-orange-300">"React"</span>, <span className="text-orange-300">"Next"</span>, <span className="text-orange-300">"Tailwind"</span>],
                     <br />
                     &nbsp;&nbsp;<span className="text-sky-300">"backend"</span>: [<span className="text-orange-300">"Node.js"</span>, <span className="text-orange-300">"Python"</span>, <span className="text-orange-300">"PostgreSQL"</span>],
-                    <br />
-                    &nbsp;&nbsp;<span className="text-sky-300">"tools"</span>: [<span className="text-orange-300">"Git"</span>, <span className="text-orange-300">"Docker"</span>, <span className="text-orange-300">"Figma"</span>]
                     <br />
                     <span className="text-yellow-300">{`}`}</span>
                   </div>
